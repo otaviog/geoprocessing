@@ -1,6 +1,9 @@
 venv
+.envrc
 *.shp
 *.dbf
 *.prj
 *.shx
 *.zip
+*.sbn
+*.sbx
