@@ -1,0 +1,6 @@
+venv
+*.shp
+*.dbf
+*.prj
+*.shx
+*.zip
