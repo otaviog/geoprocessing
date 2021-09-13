@@ -4,6 +4,7 @@
 import sys
 from statistics import mean
 
+from shapely.geometry.polygon import Polygon
 import geopandas
 import matplotlib.pyplot as plt
 import numpy as np
@@ -179,7 +180,77 @@ def cps_microregions2(output=None):
         fig.savefig(output)
 
 
+def sp_mesoregions(output=None):
+    shape = geopandas.read_file("MEEBRASIL.shp")
+
+    mesoregions = {
+        "São José do Rio Preto": 85,
+        "Ribeirão Preto": 86,
+        "Presidente Prudente": 87,
+        "Piracicaba": 88,
+        "Metropolitana Paulista": 89,
+        "Macro Metropolitana Paulista": 91,
+        "Marília": 90,
+        "Litoral Sul Paulista": 92,
+        "Itapetininga": 93,
+        "Campinas": 94,
+        "Bauru": 95,
+        "Assis": 96,
+        "Araraquara": 97,
+        "Araçatuba": 98,
+        "Vale do Paraíba Paulista": 84
+    }
+
+    dfs = {}
+    latlons = []
+    names = []
+    geometries = []
+
+    meso_centroids = {}
+    for name, loc in mesoregions.items():
+        geometry = shape.loc[loc]['geometry']
+
+        if isinstance(geometry, (Polygon)):
+            ll = np.array(geometry.exterior.coords)
+            latlons.append(ll)
+            meso_centroids[name] = ll.mean(0)
+        else:
+            ll = np.vstack([np.array(poly.exterior.coords)
+                            for poly in geometry])
+            latlons.append(ll)
+            meso_centroids[name] = ll.mean(0)
+
+        dfs[name] = geopandas.GeoDataFrame(
+            geometry=[geometry],
+            crs=shape.crs)
+        geometries.append(geometry)
+        names.append(name)
+
+    fig, ax = plt.subplots(1, 1)
+    fig.set_size_inches(12.5, 6.5, forward=True)
+    cmap = plt.get_cmap("tab20")
+    for i, (name, df) in enumerate(dfs.items()):
+        df.plot(ax=ax, color=cmap(i))
+        #df.boundary.plot(ax=ax, color=cmap(i), label=name)
+        centroid = meso_centroids[name]
+        plt.scatter(centroid[0], centroid[1], color=cmap(i), label=name)
+
+    latlons = np.vstack(latlons)
+    add_ruler(latlons, shape.crs.get_geod(), -26, ax)
+
+    ax.axis('off')
+    ax.legend(loc='center left', bbox_to_anchor=(1, 0.5))
+    plt.title("Mesorregiões do Estado de São Paulo")
+
+    if output is None:
+        plt.show()
+    else:
+        fig.savefig(output)
+
+
 if __name__ == '__main__':
     Fire({'cps_mesoregion': cps_mesoregion,
           'cps_microregions': cps_microregions,
-          'cps_microregions2': cps_microregions2})
+          'cps_microregions2': cps_microregions2,
+          'sp_mesoregions': sp_mesoregions
+          })
